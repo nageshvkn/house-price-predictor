@@ -195,3 +195,91 @@ Then rerun `python3 train.py` and `python3 app.py`.
 Explain:
 - this simulates a fresh project run.
 - it is useful for workshops when you want to demonstrate the entire flow again.
+
+## Part 2 — CI/CD with Jenkins
+
+This part shows the same pipeline (lint, test, train, validate, package, deploy)
+first run manually stage-by-stage, then automated end-to-end by Jenkins.
+
+Files involved:
+- `Makefile` — one target per stage (`setup`, `lint`, `test`, `train`, `validate`, `build`, `deploy`, `smoke`). Running these by hand *is* the manual demo.
+- `tests/` — unit tests for `data.py` and `model.py`.
+- `scripts/validate_model.py` — the model quality gate; fails the pipeline if R2 drops below 0.85.
+- `Dockerfile` — packages the Flask app + trained model into a runnable image.
+- `Jenkinsfile` — declarative pipeline; each stage just calls the matching `make` target.
+- `docker-compose.yml` + `jenkins/Dockerfile` — a self-contained Jenkins instance (with Python, Docker CLI, and Make preinstalled) so the whole demo runs on one laptop.
+
+### Step 8 — Run every stage manually first
+
+Run each command one at a time and explain what it represents before moving to the next:
+
+```bash
+make setup     # install deps into .venv -- "this is what CI does before anything else"
+make lint      # style/static checks -- "catches issues before they reach a teammate"
+make test      # unit tests -- "regression safety net"
+make train     # train + evaluate -- "same training step as Part 1, run non-interactively"
+make validate  # model quality gate -- "a bad model should never reach deployment"
+make build     # docker build -- "package the app + trained model into one artifact"
+make deploy    # docker run -- "roll the artifact out, same way every time"
+make smoke     # curl the live endpoint -- "prove the deployment actually works"
+```
+
+Open `http://localhost:5050/status` to show the live, container-served app after `make deploy`.
+
+To break it on purpose (shows the gate stopping a bad release): temporarily edit
+`scripts/validate_model.py` and raise `MIN_R2` above what the model actually
+achieves (e.g. `0.99`), run `make validate`, show it fail, then revert.
+
+Reset between demos with `make clean` (mirrors Step 7, plus stops the container: `docker rm -f house-price-app`).
+
+### Step 9 — Same steps, one command
+
+```bash
+make pipeline
+```
+
+This just chains every target above in order — the bridge concept before
+introducing Jenkins: *"Jenkins is going to run exactly this."*
+
+### Step 10 — Stand up Jenkins
+
+```bash
+docker compose up -d --build
+```
+
+Grab the initial admin password:
+
+```bash
+docker compose logs jenkins | grep -A2 "initial setup"
+```
+
+Open `http://localhost:8090`, paste the password, install suggested plugins, create an admin user.
+
+### Step 11 — Create the pipeline job
+
+1. **New Item** → name it `house-price-predictor` → type **Pipeline** → OK.
+2. Under **Pipeline**, set:
+   - Definition: `Pipeline script from SCM`
+   - SCM: `Git`
+   - Repository URL: this repo's GitHub URL
+   - Branch: `*/main`
+   - Script Path: `Jenkinsfile`
+3. Under **Build Triggers**, check `Poll SCM` and set schedule to `* * * * *` (checks every minute — avoids needing a public webhook for the workshop).
+4. Save, then click **Build Now** for the first manual run.
+
+### Step 12 — Live demo: push a change, watch it deploy
+
+1. Open the build's stage view and walk through it — point out it's the exact same stages as Step 8.
+2. Make a small change (e.g. edit a comment or notes string), commit, and push. Within a minute the pipeline auto-triggers.
+3. **Break it on purpose**: same trick as Step 8 (bump `MIN_R2` in `scripts/validate_model.py` too high), push, and show the `Model Quality Gate` stage fail red — deployment never runs, the previous container keeps serving traffic untouched.
+4. Revert, push the fix, watch it go green and auto-deploy.
+5. Refresh `http://localhost:5050/status` — the `run_id` changed, proving the new build actually redeployed.
+
+### Step 13 — Wrap up and clean up
+
+Talk points: CI (lint/test) vs CD (build/deploy), why an ML pipeline needs a *metrics* gate and not just a *code* gate, and how rollback works here (redeploy a prior image tag).
+
+```bash
+docker rm -f house-price-app
+docker compose down -v
+```
