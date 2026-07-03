@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Experiment Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: Inter, Arial, sans-serif;
+            background: #eef4ff;
+            color: #0f172a;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+        }
+        .page-shell {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 36px 20px 60px;
+        }
+        .topbar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 30px;
+        }
+        .hero-card {
+            padding: 30px 32px;
+            border-radius: 26px;
+            background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
+            color: white;
+            box-shadow: 0 28px 80px rgba(15, 23, 42, 0.12);
+        }
+        .hero-card h1 {
+            margin: 0 0 10px;
+            font-size: clamp(2rem, 2.5vw, 2.7rem);
+            letter-spacing: -0.03em;
+        }
+        .hero-card p {
+            margin: 0;
+            opacity: 0.92;
+            max-width: 680px;
+            line-height: 1.75;
+        }
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 22px;
+        }
+        .hero-actions .btn {
+            min-width: 186px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 18px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 22px;
+            padding: 24px 22px;
+            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.12);
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            inset: -30px -30px auto auto;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(59, 130, 246, 0.12);
+            z-index: 0;
+        }
+        .stat-card h4 {
+            margin: 0 0 10px;
+            font-size: 0.95rem;
+            letter-spacing: 0.02em;
+            color: #4338ca;
+            position: relative;
+            z-index: 1;
+        }
+        .stat-card p {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            position: relative;
+            z-index: 1;
+        }
+        .panel-card {
+            background: white;
+            border-radius: 24px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+        }
+        .panel-card .panel-header {
+            padding: 24px 28px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+        .panel-card h2 {
+            margin: 0;
+            font-size: 1.2rem;
+            letter-spacing: -0.02em;
+        }
+        .panel-card .panel-body {
+            padding: 0 28px 28px;
+        }
+        .chart-wrapper {
+            position: relative;
+            min-height: 320px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+        .table thead th {
+            background: #eef2ff;
+            color: #1e293b;
+            border: 0;
+            font-weight: 600;
+            padding: 16px 18px;
+            text-align: left;
+        }
+        .table tbody tr {
+            background: white;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .table tbody tr:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        }
+        .table td {
+            padding: 16px 18px;
+            vertical-align: middle;
+            border-top: 1px solid #f1f5f9;
+        }
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.4rem 0.75rem;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.1);
+            color: #1d4ed8;
+            font-size: 0.84rem;
+            font-weight: 600;
+        }
+        .note-pill {
+            display: inline-block;
+            max-width: 220px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: middle;
+        }
+        @media (max-width: 768px) {
+            .hero-actions { width: 100%; justify-content: stretch; }
+            .hero-actions .btn { flex: 1; }
+            .panel-card .panel-header { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-shell">
+        <div class="topbar">
+            <div class="hero-card">
+                <h1>Experiment Dashboard</h1>
+                <p>Track your model training runs with a beautiful chart view and compare RMSE, MAE, and R2 over time.</p>
+                <div class="hero-actions">
+                    <a href="/" class="btn btn-white btn-lg text-blue-700">Back to predictor</a>
+                    <a href="/experiments" class="btn btn-light btn-lg text-slate-900">Refresh dashboard</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h4>Total runs</h4>
+                <p id="totalRuns">0</p>
+            </div>
+            <div class="stat-card">
+                <h4>Best RMSE</h4>
+                <p id="bestRmse">—</p>
+            </div>
+            <div class="stat-card">
+                <h4>Best MAE</h4>
+                <p id="bestMae">—</p>
+            </div>
+            <div class="stat-card">
+                <h4>Best R2</h4>
+                <p id="bestR2">—</p>
+            </div>
+        </div>
+
+        <div class="panel-card mb-4">
+            <div class="panel-header">
+                <div>
+                    <h2>Metrics trend</h2>
+                    <p class="text-muted">A single view of experiment performance across runs.</p>
+                </div>
+                <span class="tag">Experiment log</span>
+            </div>
+            <div class="panel-body chart-wrapper">
+                <canvas id="metricsChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel-card">
+            <div class="panel-header">
+                <div>
+                    <h2>Experiment log</h2>
+                    <p class="text-muted">Details of each run, including notes and metrics.</p>
+                </div>
+            </div>
+            <div class="panel-body table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Run ID</th>
+                            <th>Timestamp</th>
+                            <th>Rows</th>
+                            <th>RMSE</th>
+                            <th>MAE</th>
+                            <th>R2</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in experiments %}
+                        <tr>
+                            <td>{{ row.run_id }}</td>
+                            <td>{{ row.timestamp or '' }}</td>
+                            <td>{{ row.rows }}</td>
+                            <td>{{ row.rmse }}</td>
+                            <td>{{ row.mae }}</td>
+                            <td>{{ row.r2 }}</td>
+                            <td><span class="note-pill" title="{{ row.notes }}">{{ row.notes }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const experiments = {{ experiments | tojson }};
+        const labels = experiments.map(row => row.run_id);
+        const rmseData = experiments.map(row => row.rmse);
+        const maeData = experiments.map(row => row.mae);
+        const r2Data = experiments.map(row => row.r2);
+
+        document.getElementById('totalRuns').innerText = experiments.length;
+        document.getElementById('bestRmse').innerText = experiments.length ? Math.min(...rmseData).toFixed(3) : '—';
+        document.getElementById('bestMae').innerText = experiments.length ? Math.min(...maeData).toFixed(3) : '—';
+        document.getElementById('bestR2').innerText = experiments.length ? Math.max(...r2Data).toFixed(3) : '—';
+
+        new Chart(document.getElementById('metricsChart'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'RMSE',
+                        data: rmseData,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.16)',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                    },
+                    {
+                        label: 'MAE',
+                        data: maeData,
+                        borderColor: '#14b8a6',
+                        backgroundColor: 'rgba(20, 184, 166, 0.16)',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                    },
+                    {
+                        label: 'R2',
+                        data: r2Data,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.16)',
+                        tension: 0.3,
+                        fill: true,
+                        yAxisID: 'r2Axis',
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: { display: true, text: 'Error / Score' },
+                        grid: { color: 'rgba(148, 163, 184, 0.18)' }
+                    },
+                    r2Axis: {
+                        position: 'right',
+                        beginAtZero: true,
+                        min: 0,
+                        max: 1,
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'R2 score' }
+                    },
+                    x: {
+                        grid: { color: 'rgba(148, 163, 184, 0.12)' }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'top', labels: { boxWidth: 12, padding: 14 } },
+                    tooltip: { mode: 'nearest', intersect: false, padding: 12 }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

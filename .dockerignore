@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+tests/
+scripts/
+data/
+experiments/
+jenkins/
+jenkins_home/
+docker-compose.yml
+Jenkinsfile
+Makefile
+README.md

@@ -1,0 +1,17 @@
+services:
+  jenkins:
+    build:
+      context: ./jenkins
+    container_name: mlops-jenkins
+    # Running as root sidesteps docker.sock group-permission mismatches between
+    # the host Docker Desktop VM and the container -- fine for a local workshop,
+    # not something you'd do for a real shared Jenkins instance.
+    user: root
+    ports:
+      - "8080:8080"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  jenkins_home:

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>House Price Predictor</title>
+<!-- Bootstrap CDN -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    body {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+        font-family: 'Segoe UI', Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+    }
+    .main-content {
+        flex: 1 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 80vh;
+    }
+    .predictor-container {
+        max-width: 700px;
+        background: #fff;
+        padding: 40px 30px 30px 30px;
+        border-radius: 18px;
+        box-shadow: 0px 8px 32px rgba(0,0,0,0.13);
+        margin-top: 40px;
+        margin-bottom: 40px;
+    }
+    .section-card {
+        max-width: 700px;
+        border-radius: 16px;
+        box-shadow: 0px 4px 18px rgba(0,0,0,0.07);
+        margin: 32px auto 0 auto;
+        padding: 32px 28px 24px 28px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .predictor-container {
+        background: linear-gradient(135deg, #e0eafc 0%, #f8f9fa 100%);
+    }
+    .loan-section {
+        background: linear-gradient(135deg, #f8ffec 0%, #e0ffe0 100%);
+    }
+    .deals-section {
+        background: linear-gradient(135deg, #fff6e6 0%, #ffe9e9 100%);
+    }
+    .section-title {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #007bff;
+        margin-bottom: 1.2rem;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .section-title .icon {
+        font-size: 1.5rem;
+        vertical-align: middle;
+    }
+    .loan-offers, .deals-list {
+        width: 100%;
+        background: none;
+        border-radius: 0;
+        padding: 0;
+        margin-bottom: 0.5rem;
+        box-shadow: none;
+    }
+    .loan-offer-item, .deal-item {
+        background: #f4f8fb;
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-bottom: 0.8rem;
+        font-size: 1.08rem;
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    }
+    .loan-offer-item:last-child, .deal-item:last-child {
+        margin-bottom: 0;
+    }
+    .loan-offer-bank {
+        font-weight: 600;
+        color: #007bff;
+        margin-right: 0.3rem;
+    }
+    .loan-offer-cta {
+        margin-left: auto;
+    }
+    .deal-location {
+        color: #6c757d;
+        font-size: 0.98rem;
+        margin-left: 0.5rem;
+    }
+    .deal-highlight {
+        color: #28a745;
+        font-weight: 500;
+        margin-left: 0.7rem;
+    }
+    .view-all-link {
+        display: inline-block;
+        margin-top: 0.7rem;
+        color: #007bff;
+        font-weight: 500;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    .view-all-link:hover {
+        color: #0056b3;
+        text-decoration: underline;
+    }
+    .loan-cta-btn {
+        margin-top: 1.2rem;
+        background: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 28px;
+        font-size: 1.08rem;
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        transition: background 0.2s;
+    }
+    .loan-cta-btn:hover {
+        background: #0056b3;
+    }
+    .header-bar {
+        width: 100%;
+        background: rgba(255,255,255,0.95);
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        padding: 0.7rem 0;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .header-content {
+        display: flex;
+        align-items: center;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+    .logo-home {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .logo-icon {
+        font-size: 2rem;
+        margin-right: 0.3rem;
+    }
+    .home-link {
+        font-weight: 600;
+        color: #007bff;
+        text-decoration: none;
+        font-size: 1.1rem;
+        transition: color 0.2s;
+    }
+    .home-link:hover {
+        color: #0056b3;
+        text-decoration: underline;
+    }
+    .page-title {
+        flex-grow: 1;
+        text-align: center;
+        font-size: 2rem;
+        color: #007bff;
+        font-weight: 700;
+        letter-spacing: 1px;
+        margin: 0;
+    }
+    .result {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 10px;
+        font-weight: bold;
+        font-size: 1.2rem;
+        text-align: center;
+        background-color: #e6ffe6 !important;
+        color: #0f5132;
+        border: 1.5px solid #b6eab6;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+    }
+    .low { background-color: #e6ffe6 !important; color: #0f5132; }
+    .medium { background-color: #e6ffe6 !important; color: #0f5132; }
+    .high { background-color: #e6ffe6 !important; color: #0f5132; }
+    .slider-value { font-weight: bold; }
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #007bff;
+        margin-top: 2.5rem;
+        margin-bottom: 1rem;
+        letter-spacing: 0.5px;
+    }
+    .loan-offers, .deals-list {
+        background: #f6f9fc;
+        border-radius: 10px;
+        padding: 18px 20px 10px 20px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .loan-offer-item {
+        margin-bottom: 0.7rem;
+        font-size: 1.05rem;
+    }
+    .city-badge {
+        display: inline-block;
+        background: #e7f1ff;
+        color: #0056b3;
+        border-radius: 20px;
+        padding: 0.35em 1.1em;
+        font-size: 1.05rem;
+        font-weight: 500;
+        margin-bottom: 1.2rem;
+        margin-top: 0.5rem;
+    }
+    .deal-item {
+        margin-bottom: 0.6rem;
+        font-size: 1.04rem;
+    }
+    .footer {
+        width: 100%;
+        background: #22223b;
+        color: #fff;
+        text-align: center;
+        padding: 18px 0 10px 0;
+        font-size: 1rem;
+        letter-spacing: 0.5px;
+        flex-shrink: 0;
+        margin-top: auto;
+        box-shadow: 0 -2px 12px rgba(0,0,0,0.04);
+    }
+</style>
+</head>
+<body>
+
+<div class="header-bar">
+    <div class="header-content">
+        <div class="logo-home">
+            <span class="logo-icon">🏡</span>
+            <a href="/home" class="home-link">Home</a>
+        </div>
+        <div class="page-title">House Price Predictor <span style="font-size:1.1rem;font-weight:400;">(Real-Time)</span></div>
+        <div class="model-status text-white ms-3">
+            {% if model_info.run_id %}
+                <span class="badge bg-info text-dark">Model: {{ model_info.run_id }}</span>
+                <span class="badge bg-light text-dark">RMSE: {{ model_info.rmse }}</span>
+            {% else %}
+                <span class="badge bg-warning text-dark">No trained model loaded</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<div class="main-content">
+    <div class="tabbed-sections">
+        <ul class="nav nav-tabs justify-content-center mb-4" id="sectionTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="predictor-tab" data-bs-toggle="tab" data-bs-target="#predictor" type="button" role="tab" aria-controls="predictor" aria-selected="true">Predictor</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="loan-tab" data-bs-toggle="tab" data-bs-target="#loan" type="button" role="tab" aria-controls="loan" aria-selected="false">Loan Offers</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="deals-tab" data-bs-toggle="tab" data-bs-target="#deals" type="button" role="tab" aria-controls="deals" aria-selected="false">Better Deals</button>
+            </li>
+        </ul>
+        <div class="tab-content d-flex flex-row justify-content-center align-items-stretch" id="sectionTabsContent" style="min-height:420px;">
+            <!-- Predictor Tab -->
+            <div class="tab-pane fade show active w-100" id="predictor" role="tabpanel" aria-labelledby="predictor-tab">
+                <div class="d-flex flex-row align-items-center h-100">
+                    <img src="https://img.freepik.com/free-vector/real-estate-agent-showing-house-property-client_74855-14015.jpg?w=400" alt="Predictor" style="width:220px; height:auto; border-radius:14px; margin-right:32px; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+                    <div class="predictor-container section-card" style="margin:0; box-shadow:none; background:linear-gradient(135deg, #e0eafc 0%, #f8f9fa 100%);">
+                        <div class="mb-3">
+                            <label for="area" class="form-label">Area (sq ft): <span id="areaVal" class="slider-value">1200</span></label>
+                            <input type="range" class="form-range" id="area" min="100" max="5000" value="1200">
+                        </div>
+                        <div class="mb-3">
+                            <label for="bedrooms" class="form-label">Bedrooms: <span id="bedroomsVal" class="slider-value">3</span></label>
+                            <input type="range" class="form-range" id="bedrooms" min="1" max="10" value="3">
+                        </div>
+                        <div class="mb-3">
+                            <label for="bathrooms" class="form-label">Bathrooms: <span id="bathroomsVal" class="slider-value">2</span></label>
+                            <input type="range" class="form-range" id="bathrooms" min="1" max="10" value="2">
+                        </div>
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Location</label>
+                            <select class="form-select" id="location">
+                                <option value="Urban">Urban</option>
+                                <option value="Suburban" selected>Suburban</option>
+                                <option value="Rural">Rural</option>
+                            </select>   
+                        </div>
+                        <div class="city-badge" id="cityBadge">City: <span style="font-weight:600;">Bangalore</span></div>
+                        <div id="prediction" class="result low">Predicted Price: <span id="priceVal">₹0</span></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Loan Offers Tab -->
+            <div class="tab-pane fade w-100" id="loan" role="tabpanel" aria-labelledby="loan-tab">
+                <div class="d-flex flex-row align-items-center h-100">
+                    <img src="https://img.freepik.com/free-vector/loan-approval-concept-illustration_114360-5167.jpg?w=400" alt="Loan Offers" style="width:220px; height:auto; border-radius:14px; margin-right:32px; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+                    <div class="section-card loan-section" style="margin:0; box-shadow:none;">
+                        <div class="section-title"><span class="icon">💰</span>Available Loan Offers</div>
+                        <div class="loan-offers">
+                            <div class="loan-offer-item">
+                                <span>🏦</span> <span class="loan-offer-bank">HDFC Home Loan</span> 8.5% p.a. | Up to ₹1 Cr
+                                <a href="#" class="loan-offer-cta view-all-link">Apply Now</a>
+                            </div>
+                            <div class="loan-offer-item">
+                                <span>🏦</span> <span class="loan-offer-bank">SBI Realty</span> 8.3% p.a. | Up to ₹2 Cr
+                                <a href="#" class="loan-offer-cta view-all-link">Apply Now</a>
+                            </div>
+                            <div class="loan-offer-item">
+                                <span>🏦</span> <span class="loan-offer-bank">ICICI Home Loan</span> 8.7% p.a. | Up to ₹75L
+                                <a href="#" class="loan-offer-cta view-all-link">Apply Now</a>
+                            </div>
+                        </div>
+                        <button class="loan-cta-btn">Get Pre-Approved</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Better Deals Tab -->
+            <div class="tab-pane fade w-100" id="deals" role="tabpanel" aria-labelledby="deals-tab">
+                <div class="d-flex flex-row align-items-center h-100">
+                    <img src="https://img.freepik.com/free-vector/real-estate-searching-concept-illustration_114360-5168.jpg?w=400" alt="Better Deals" style="width:220px; height:auto; border-radius:14px; margin-right:32px; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+                    <div class="section-card deals-section" style="margin:0; box-shadow:none;">
+                        <div class="section-title"><span class="icon">🏠</span>Better Deals Near You</div>
+                        <div class="deals-list">
+                            <div class="deal-item">
+                                <span>🏠</span> <b>2BHK, Indiranagar</b> <span class="deal-location">Bangalore</span> – ₹1.2Cr <span class="deal-highlight">5% below market</span>
+                            </div>
+                            <div class="deal-item">
+                                <span>🏠</span> <b>3BHK, Whitefield</b> <span class="deal-location">Bangalore</span> – ₹2.1Cr <span class="deal-highlight">Hot Deal</span>
+                            </div>
+                            <div class="deal-item">
+                                <span>🏠</span> <b>1BHK, Koramangala</b> <span class="deal-location">Bangalore</span> – ₹85L <span class="deal-highlight">New Listing</span>
+                            </div>
+                        </div>
+                        <a href="#" class="view-all-link">View All Deals</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+<footer class="footer">
+    &copy; 2025 House Price Predictor. All rights reserved.
+</footer>
+
+<!-- jQuery (optional, easier AJAX) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    // Update slider display values
+    const sliders = ['area', 'bedrooms', 'bathrooms'];
+    sliders.forEach(id => {
+        const slider = document.getElementById(id);
+        const display = document.getElementById(id + 'Val');
+        slider.addEventListener('input', () => {
+            display.textContent = slider.value;
+            updatePrediction();
+        });
+    });
+
+    // Update prediction when location changes
+    document.getElementById('location').addEventListener('change', updatePrediction);
+
+    function updatePrediction() {
+        const area = document.getElementById('area').value;
+        const bedrooms = document.getElementById('bedrooms').value;
+        const bathrooms = document.getElementById('bathrooms').value;
+        const location = document.getElementById('location').value;
+
+        // Show loading state
+        $('#prediction').html('Predicted Price: <span id="priceVal">Loading...</span>');
+        $('#prediction').attr('class', 'result low');
+
+        // AJAX POST request to /predict
+        $.ajax({
+            url: '/predict',
+            type: 'POST',
+            data: { area, bedrooms, bathrooms, location },
+            success: function(data) {
+                let priceNum = null;
+                if (typeof data === 'object' && data.price !== undefined) {
+                    priceNum = parseFloat(data.price);
+                } else if (typeof data === 'string' && !data.includes('<')) {
+                    priceNum = parseFloat(data.replace(/[^\d.]/g, ''));
+                } else {
+                    const match = /([\d,]+(?:\.\d+)?)/.exec($(data).text());
+                    if (match) priceNum = parseFloat(match[1].replace(/,/g, ''));
+                }
+                if (!Number.isNaN(priceNum)) {
+                    $('#prediction').html('Predicted Price: <span id="priceVal">₹' + priceNum.toLocaleString() + '</span>');
+                    if(priceNum < 200000) $('#prediction').attr('class', 'result low');
+                    else if(priceNum < 400000) $('#prediction').attr('class', 'result medium');
+                    else $('#prediction').attr('class', 'result high');
+                } else {
+                    $('#prediction').html('Predicted Price: <span id="priceVal">N/A</span>');
+                    $('#prediction').attr('class', 'result low');
+                }
+            },
+            error: function() {
+                $('#prediction').html('Predicted Price: <span id="priceVal">Error</span>');
+                $('#prediction').attr('class', 'result low');
+            }
+        });
+    }
+
+    // Initial prediction
+    updatePrediction();
+</script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

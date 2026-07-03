@@ -1,0 +1,16 @@
+.claude/
+venv/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Generated workshop artifacts (recreated by train.py)
+data/raw/*.xlsx
+data/processed/*.xlsx
+models/*.pkl
+models/*.json
+experiments/*.csv
+
+# Jenkins runtime data (bind-mounted volume, not source)
+jenkins_home/
