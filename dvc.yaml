@@ -1,0 +1,37 @@
+stages:
+  generate:
+    cmd: python train.py generate-raw --rows ${data.rows} --seed ${data.seed}
+    deps:
+      - config.py
+      - data.py
+      - train.py
+    params:
+      - data.rows
+      - data.seed
+    outs:
+      - data/raw/house_prices_raw_v1.xlsx
+  prepare:
+    cmd: python train.py clean-data
+    deps:
+      - config.py
+      - data.py
+      - data/raw/house_prices_raw_v1.xlsx
+      - train.py
+    outs:
+      - data/processed/house_prices_train.xlsx
+  train:
+    cmd: python train.py train --test-size ${train.test_size} --seed ${train.seed}
+    deps:
+      - config.py
+      - data.py
+      - data/processed/house_prices_train.xlsx
+      - model.py
+      - train.py
+    params:
+      - train.test_size
+      - train.seed
+    outs:
+      - models/latest_model.pkl
+      - models/latest_model_info.json
+    metrics:
+      - metrics.json

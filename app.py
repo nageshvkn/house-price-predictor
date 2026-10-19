@@ -1,8 +1,4 @@
-"""Flask web app for the workshop demo.
-
-This module loads the latest trained model and metadata, serves the prediction UI,
-provides a simple `/status` health endpoint, and renders the experiment dashboard.
-"""
+"""Flask prediction service for the workshop demo."""
 
 import os
 import pickle
@@ -10,9 +6,8 @@ import json
 import socket
 
 from flask import Flask, render_template, request, jsonify
-import pandas as pd
 
-from config import EXPERIMENT_LOG, MODEL_INFO, MODEL_REGISTRY
+from config import MODEL_INFO, MODEL_REGISTRY
 from model import predict_from_input
 
 app = Flask(__name__)
@@ -60,10 +55,13 @@ def predict():
     if model is None:
         return jsonify({"error": "Model not available. Run train.py first."}), 503
 
-    area = float(request.form.get("area", 0))
-    bedrooms = int(request.form.get("bedrooms", 0))
-    bathrooms = int(request.form.get("bathrooms", 0))
-    location = request.form.get("location", "Urban")
+    try:
+        area = float(request.form["area"])
+        bedrooms = int(request.form["bedrooms"])
+        bathrooms = int(request.form["bathrooms"])
+        location = request.form["location"]
+    except (KeyError, ValueError):
+        return jsonify({"error": "Provide numeric area, bedrooms, and bathrooms, and a location."}), 400
 
     prediction = predict_from_input(model, area, bedrooms, bathrooms, location)
     return jsonify(
@@ -75,28 +73,6 @@ def predict():
             "r2": model_info.get("r2"),
         }
     )
-
-
-def load_experiment_log():
-    """Read experiment history from CSV and normalize it for the dashboard."""
-    if not EXPERIMENT_LOG.exists():
-        return []
-
-    df = pd.read_csv(EXPERIMENT_LOG, parse_dates=["timestamp"])
-    df = df.sort_values("timestamp")
-    df["rmse"] = pd.to_numeric(df["rmse"], errors="coerce")
-    df["mae"] = pd.to_numeric(df["mae"], errors="coerce")
-    df["r2"] = pd.to_numeric(df["r2"], errors="coerce")
-    df["rows"] = pd.to_numeric(df["rows"], errors="coerce")
-    df["timestamp"] = df["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
-    return df.to_dict(orient="records")
-
-
-@app.route("/experiments")
-def experiments():
-    """Render the experiment dashboard with historical run data."""
-    experiment_rows = load_experiment_log()
-    return render_template("experiments.html", experiments=experiment_rows)
 
 
 def get_server_port(default_port: int = 5000) -> int:
@@ -125,4 +101,9 @@ if __name__ == "__main__":
     port = find_available_port(default_port)
     if port != default_port:
         print(f"Port {default_port} is in use. Starting Flask on port {port} instead.")
-    app.run(host="0.0.0.0", debug=True, port=port, use_reloader=False)
+    app.run(
+        host="0.0.0.0",
+        debug=os.environ.get("FLASK_DEBUG") == "1",
+        port=port,
+        use_reloader=False,
+    )

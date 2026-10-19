@@ -11,6 +11,15 @@ data/processed/*.xlsx
 models/*.pkl
 models/*.json
 experiments/*.csv
+metrics.json
+mlruns/
+mlartifacts/
+mlflow.db
+mlflow.db-*
+house-price-predictor-dvc-storage/
+.dvc/cache/
+.dvc/tmp/
+.dvc/config.local
 
 # Jenkins runtime data (bind-mounted volume, not source)
 jenkins_home/

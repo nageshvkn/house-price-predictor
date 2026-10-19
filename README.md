@@ -1,285 +1,281 @@
-# House Price Predictor — MLOps Workshop Demo
+# House Price Predictor — MLOps Workshop
 
-A simple end-to-end workshop project that demonstrates a lightweight MLOps workflow using a housing price prediction app.
+A short, hands-on workshop that takes one small ML application through a practical MLOps workflow:
 
-## Why this project works for a workshop
+**DVC data/pipeline versioning → MLflow experiment tracking → Jenkins CI/CD → Docker deployment**
 
-It shows the full path from:
-- raw data creation and inspection
-- missing-value handling
-- model training and evaluation
-- experiment tracking
-- model versioning
-- deployment and inference
-- reproducibility
+The project uses deterministic synthetic house-price data so the workshop runs without downloading a dataset or needing cloud credentials. The goal is to learn the workflow, not to build a real estate pricing product.
 
-All with minimal code and accessible files.
+## What students will learn
 
-## Workshop demo flow
+- How Git and DVC work together: Git stores code and pipeline metadata; DVC stores and versions data and model outputs.
+- How to rerun only the pipeline stages affected by a change with `dvc repro`.
+- How to compare parameters, metrics, and model artifacts in MLflow.
+- How Jenkins runs tests, reproduces the ML pipeline, applies a model-quality gate, and builds/deploys a Docker image.
+- How to inspect a running model service and understand the limits of a demo deployment.
 
-### Step 1 — Setup the environment
+## Workshop flow
 
-This is the first step in the workshop, and it should be executed before anything else.
+1. Set up the project and its local DVC remote.
+2. Run the DVC pipeline and inspect its stages.
+3. Compare the MLflow training run.
+4. Change a parameter and reproduce the pipeline.
+5. Run the Jenkins pipeline.
+6. Send a prediction to the Dockerized service and clean up.
 
-1. Create a fresh Python virtual environment:
+This replaces the earlier manual generate/clean/train tour with one reproducible pipeline run. The steps below are also intended as the post-workshop student runbook.
 
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
+## Prerequisites
 
-2. Install the required packages:
+Install these before the workshop:
 
-```bash
-pip install -r requirements.txt
-```
+- Git
+- Python 3.11 or newer
+- Docker Desktop (including Docker Compose)
+- A terminal and a clone of this repository
 
-What to explain:
-- `venv` creates an isolated environment so dependencies do not interfere with system Python or other projects.
-- The shell prompt will show `(venv)` after activation, confirming the environment is active.
-- `requirements.txt` defines the exact dependencies needed to run the app, train the model, and render the dashboard.
+Jenkins is run locally in Docker. No Jenkins server, cloud account, DagsHub account, or external dataset is required.
 
-Verification:
-- Run `python -m pip list` to confirm that Flask, pandas, scikit-learn, openpyxl, and other libraries are installed.
+## 1. Set up the environment
 
-### Step 2 — Inspect the project structure and raw data
-
-Review key project files and directories before running the pipeline:
-
-- `data.py` — synthetic Excel raw data creation, missing-value injection, cleaning, and processed data saving
-- `model.py` — feature transformation, model training, prediction, and evaluation helpers
-- `train.py` — orchestrates data pipeline, training, evaluation, model storage, and experiment logging
-- `experiment_tracker.py` — records training runs in `experiments/experiment_log.csv`
-- `app.py` — Flask service that loads the latest model and serves predictions
-- `templates/index.html` — interactive browser prediction UI
-- `templates/experiments.html` — experiment dashboard with charts
-- `config.py` — central path definitions for data, models, and experiments
-- `models/` — trained model artifacts and model registry
-- `data/raw/` — raw Excel dataset for the data-demo step
-- `data/processed/` — cleaned Excel dataset used for training
-- `experiments/` — experiment history log
-
-Review the raw dataset:
-- Open `data/raw/house_prices_raw_v1.xlsx`.
-- Identify the feature columns: `area`, `bedrooms`, `bathrooms`, `location`.
-- Identify the target column: `price`.
-- Point out missing values and explain why the raw file is not yet ready for machine learning.
-
-### Step 3 — Run the pipeline in stages
-
-This workshop now supports manual execution of each stage.
-
-#### Generate raw synthetic data
+From the project directory:
 
 ```bash
-python3 train.py generate-raw
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements-dev.txt
 ```
 
-What happens:
-- synthetic raw data is generated and saved to `data/raw/house_prices_raw_v1.xlsx`
-- missing values are introduced to simulate imperfect real data
-- the file is ready for inspection before cleaning
+On Windows PowerShell, activate with:
 
-What to show:
-- open `data/raw/house_prices_raw_v1.xlsx`
-- point out missing values and the raw feature/target columns
+```powershell
+.venv\Scripts\Activate.ps1
+```
 
-#### Clean the raw data
+`requirements-dev.txt` includes the workshop tools and app dependencies from `requirements.txt`, plus lint and test tools.
+
+Check the tools:
 
 ```bash
-python3 train.py clean-data
+dvc --version
+mlflow --version
 ```
 
-What happens:
-- raw data is loaded from `data/raw/house_prices_raw_v1.xlsx`
-- missing values are filled using simple rules
-- cleaned data is saved to `data/processed/house_prices_train.xlsx`
+## 2. Understand the project files
 
-What to show:
-- open the processed file and compare it with the raw dataset
-- emphasize that cleaning is a separate step from training
+| File | Purpose |
+|---|---|
+| `dvc.yaml` | Declares the generate → clean → train pipeline and its dependencies/outputs. |
+| `params.yaml` | Holds the data-generation and training parameters consumed by DVC. |
+| `.dvc/config` | Configures the simple local DVC remote used in this workshop. |
+| `data.py` | Generates deterministic synthetic data and cleans missing values. |
+| `train.py` | Runs a pipeline stage and logs each training run to MLflow. |
+| `model.py` | Feature transformation, linear regression, prediction, and evaluation. |
+| `scripts/validate_model.py` | Stops the release if the configured R² quality threshold is not met. |
+| `Jenkinsfile` | Runs checks, DVC reproduction, model validation, image build, deployment, and smoke test. |
+| `docker-compose.yml` | Starts the MLflow tracking server and the local Jenkins instance. |
+| `Dockerfile` | Packages the Flask prediction service with the trained model. |
 
-#### Train the model
+## 3. Start MLflow and Jenkins
 
-```bash
-python3 train.py train
-```
-
-What happens:
-- processed data is loaded from `data/processed/house_prices_train.xlsx`
-- the model is trained on a training split
-- the model is evaluated on a test split
-- metrics are printed: RMSE, MAE, and R2
-- a versioned model artifact is written to `models/`
-- the run is logged to `experiments/experiment_log.csv`
-
-What to show:
-- terminal output with metrics
-- created files:
-  - `models/latest_model.pkl`
-  - `models/latest_model_info.json`
-  - `experiments/experiment_log.csv`
-
-Explain:
-- `run_id` identifies each experiment uniquely.
-- the timestamp records when the run happened.
-- metrics like RMSE, MAE, and R2 show model accuracy and fit.
-
-#### Run everything end-to-end
-
-```bash
-python3 train.py full
-```
-
-What happens:
-- raw data is generated
-- the data is cleaned
-- the model is trained and logged
-
-Use this once you’ve shown the stages individually to demonstrate the full pipeline.
-
-### Step 4 — Open the experiment dashboard
-
-Start the Flask app:
-
-```bash
-python3 app.py
-```
-
-Open these pages:
-- `http://127.0.0.1:5000/`
-- `http://127.0.0.1:5000/experiments`
-
-What to show:
-- the dashboard summary cards: total runs, best RMSE, best MAE, best R2.
-- the chart of metrics across experiment runs.
-- the experiment log table with notes.
-
-Explain:
-- this dashboard makes experiment history easier to understand than a plain CSV.
-- it is useful for comparing model improvements over multiple training runs.
-
-### Step 5 — Use the prediction UI
-
-In the browser at `http://127.0.0.1:5000/`:
-- enter values for `area`, `bedrooms`, `bathrooms`, and `location`.
-- submit the form and show the predicted price.
-- point out that the app uses the latest saved model.
-
-Explain:
-- training and serving are separated by design.
-- the app provides a simple way to turn a model into a working demo.
-
-### Step 6 — Check experiment metadata
-
-Optional endpoints:
-- `http://127.0.0.1:5000/status`
-  - returns the latest model metadata as JSON.
-- `experiments/experiment_log.csv`
-  - can be opened directly if you want the raw values.
-
-Explain:
-- the dashboard is built from the same experiment log file.
-- the JSON status endpoint is useful for programmatic checks.
-
-### Step 7 — Reset and rerun
-
-To repeat the workshop from scratch, run this single cleanup command from the repo root:
-
-```bash
-rm -f models/latest_model.pkl models/latest_model_info.json experiments/experiment_log.csv data/processed/house_prices_train.xlsx
-```
-
-Then rerun `python3 train.py` and `python3 app.py`.
-
-Explain:
-- this simulates a fresh project run.
-- it is useful for workshops when you want to demonstrate the entire flow again.
-
-## Part 2 — CI/CD with Jenkins
-
-This part shows the same pipeline (lint, test, train, validate, package, deploy)
-first run manually stage-by-stage, then automated end-to-end by Jenkins.
-
-Files involved:
-- `Makefile` — one target per stage (`setup`, `lint`, `test`, `train`, `validate`, `build`, `deploy`, `smoke`). Running these by hand *is* the manual demo.
-- `tests/` — unit tests for `data.py` and `model.py`.
-- `scripts/validate_model.py` — the model quality gate; fails the pipeline if R2 drops below 0.85.
-- `Dockerfile` — packages the Flask app + trained model into a runnable image.
-- `Jenkinsfile` — declarative pipeline; each stage just calls the matching `make` target.
-- `docker-compose.yml` + `jenkins/Dockerfile` — a self-contained Jenkins instance (with Python, Docker CLI, and Make preinstalled) so the whole demo runs on one laptop.
-
-### Step 8 — Run every stage manually first
-
-Run each command one at a time and explain what it represents before moving to the next:
-
-```bash
-make setup     # install deps into .venv -- "this is what CI does before anything else"
-make lint      # style/static checks -- "catches issues before they reach a teammate"
-make test      # unit tests -- "regression safety net"
-make train     # train + evaluate -- "same training step as Part 1, run non-interactively"
-make validate  # model quality gate -- "a bad model should never reach deployment"
-make build     # docker build -- "package the app + trained model into one artifact"
-make deploy    # docker run -- "roll the artifact out, same way every time"
-make smoke     # curl the live endpoint -- "prove the deployment actually works"
-```
-
-Open `http://localhost:5050/status` to show the live, container-served app after `make deploy`.
-
-To break it on purpose (shows the gate stopping a bad release): temporarily edit
-`scripts/validate_model.py` and raise `MIN_R2` above what the model actually
-achieves (e.g. `0.99`), run `make validate`, show it fail, then revert.
-
-Reset between demos with `make clean` (mirrors Step 7, plus stops the container: `docker rm -f house-price-app`).
-
-### Step 9 — Same steps, one command
-
-```bash
-make pipeline
-```
-
-This just chains every target above in order — the bridge concept before
-introducing Jenkins: *"Jenkins is going to run exactly this."*
-
-### Step 10 — Stand up Jenkins
+Start both services:
 
 ```bash
 docker compose up -d --build
+docker compose ps
 ```
 
-Grab the initial admin password:
+Open:
+
+- MLflow: <http://localhost:5001>
+- Jenkins: <http://localhost:8090>
+
+Get the first Jenkins administrator password:
 
 ```bash
-docker compose logs jenkins | grep -A2 "initial setup"
+docker compose logs jenkins
 ```
 
-Open `http://localhost:8090`, paste the password, install suggested plugins, create an admin user.
+Find the line containing `initialAdminPassword`, then complete the Jenkins setup wizard and install the suggested plugins.
 
-### Step 11 — Create the pipeline job
+For local training, MLflow is available at `http://127.0.0.1:5001`. Jenkins uses the Compose network address `http://mlflow:5001`.
 
-1. **New Item** → name it `house-price-predictor` → type **Pipeline** → OK.
-2. Under **Pipeline**, set:
-   - Definition: `Pipeline script from SCM`
-   - SCM: `Git`
-   - Repository URL: this repo's GitHub URL
-   - Branch: `*/main`
-   - Script Path: `Jenkinsfile`
-3. Under **Build Triggers**, check `Poll SCM` and set schedule to `* * * * *` (checks every minute — avoids needing a public webhook for the workshop).
-4. Save, then click **Build Now** for the first manual run.
+## 4. Configure the local DVC remote
 
-### Step 12 — Live demo: push a change, watch it deploy
+DVC stores large pipeline outputs outside Git. For this laptop workshop, the repository is preconfigured to use a local directory in the project folder, excluded from Git:
 
-1. Open the build's stage view and walk through it — point out it's the exact same stages as Step 8.
-2. Make a small change (e.g. edit a comment or notes string), commit, and push. Within a minute the pipeline auto-triggers.
-3. **Break it on purpose**: same trick as Step 8 (bump `MIN_R2` in `scripts/validate_model.py` too high), push, and show the `Model Quality Gate` stage fail red — deployment never runs, the previous container keeps serving traffic untouched.
-4. Revert, push the fix, watch it go green and auto-deploy.
-5. Refresh `http://localhost:5050/status` — the `run_id` changed, proving the new build actually redeployed.
+```text
+house-price-predictor-dvc-storage/
+```
 
-### Step 13 — Wrap up and clean up
-
-Talk points: CI (lint/test) vs CD (build/deploy), why an ML pipeline needs a *metrics* gate and not just a *code* gate, and how rollback works here (redeploy a prior image tag).
+Create it and upload the current DVC-tracked outputs if any exist:
 
 ```bash
-docker rm -f house-price-app
+mkdir -p house-price-predictor-dvc-storage
+dvc remote list
+dvc push
+```
+
+This local remote is a teaching convenience, not shared team storage. For a team workshop, replace it with a shared DVC remote (for example, DagsHub or cloud object storage) and configure credentials securely; never commit tokens or passwords.
+
+## 5. Run the reproducible ML pipeline
+
+Point this terminal at the MLflow server and run the pipeline:
+
+```bash
+export MLFLOW_TRACKING_URI=http://127.0.0.1:5001
+dvc repro
+```
+
+On Windows PowerShell, set the environment variable with:
+
+```powershell
+$env:MLFLOW_TRACKING_URI = "http://127.0.0.1:5001"
+dvc repro
+```
+
+DVC executes three stages:
+
+1. **generate** — creates synthetic raw data with a fixed seed.
+2. **prepare** — fills missing values and saves the processed dataset.
+3. **train** — fits a linear regression model, calculates RMSE/MAE/R², saves the model, and logs parameters, metrics, and the model artifact to MLflow.
+
+Useful commands:
+
+```bash
+dvc dag       # display the stage dependency graph
+dvc status    # see whether inputs or outputs have changed
+dvc metrics show
+dvc push      # upload data/model outputs to the configured remote
+```
+
+Open <http://localhost:5001> and select the `house-price-predictor` experiment. Compare the run parameters and metrics. The `models/latest_model.pkl` file is used by the web app; MLflow keeps the per-run model artifact and history.
+
+## 6. Change a parameter and reproduce
+
+Edit `params.yaml`, for example change `data.rows` from `150` to `200`, then run:
+
+```bash
+dvc repro
+```
+
+DVC detects which stages depend on the changed parameter and reruns only those stages. Inspect the new run in MLflow and compare its metrics with the previous run. Restore the original value afterward if you want the default workshop state.
+
+Try changing `train.test_size` as a second exercise. Discuss why changing the data split can change evaluation metrics, and why experiments should record their parameters.
+
+## 7. Run checks and build the service
+
+Run the same checks Jenkins will use:
+
+```bash
+make lint
+make test
+make reproduce
+make validate
+make build
+```
+
+To run the container locally after a successful build:
+
+```bash
+make deploy
+make smoke
+```
+
+Each Jenkins build tags its image with the build number. If you need to restore a previously built image, stop the current container and run the earlier tag:
+
+```bash
+make rollback IMAGE_TAG=<previous-build-number>
+make smoke
+```
+
+The model quality gate reads `models/latest_model_info.json`. To demonstrate a failing release, temporarily raise `MIN_R2` in `scripts/validate_model.py` above the model's measured R², then run:
+
+```bash
+make validate
+```
+
+The gate should fail. Restore the threshold before continuing.
+
+## 8. Create a Jenkins pipeline
+
+In Jenkins:
+
+1. Select **New Item**, name it `house-price-predictor`, choose **Pipeline**, and select **OK**.
+2. Under **Pipeline**, choose **Pipeline script from SCM**.
+3. Select **Git**, enter the Git repository URL, set the branch (for example `*/main`), and set **Script Path** to `Jenkinsfile`.
+4. Save, then select **Build Now**.
+
+The Jenkinsfile runs lint, unit tests, DVC reproduction, model validation, Docker build, deployment, and a smoke test in that order. The quality gate runs before image build and deployment, so a model below the threshold cannot be released.
+Deployment replaces the local container, so a failure during the deploy/smoke stages may require the manual rollback command above.
+
+For a push-triggered demo, configure a webhook in your Git host. Polling SCM is an alternative for a local workshop, but avoid a one-minute poll interval on a shared Jenkins server.
+
+The provided Jenkins container mounts Docker Desktop's Docker socket so the pipeline can build and run containers. This is intended only for a trusted local workshop; access to the Docker socket is effectively privileged access to the host.
+
+## 9. Try the deployed predictor
+
+After the pipeline succeeds, open <http://localhost:5050/> and submit property details. You can also check:
+
+```bash
+curl http://localhost:5050/status
+```
+
+The status response includes the MLflow run ID and the model evaluation metrics. The prediction endpoint accepts form-encoded values:
+
+```bash
+curl -X POST http://localhost:5050/predict \
+  -d "area=1800&bedrooms=3&bathrooms=2&location=Urban"
+```
+
+## 10. Push DVC outputs and clean up
+
+Store the resulting data and model outputs in the configured DVC remote:
+
+```bash
+dvc push
+```
+
+Stop the local services when finished:
+
+```bash
+docker compose down
+```
+
+To also delete Jenkins and MLflow history stored in Compose volumes, use:
+
+```bash
 docker compose down -v
 ```
+
+This permanently removes those local service volumes. Do not use `-v` if you want to keep the MLflow run history or Jenkins configuration.
+
+## Troubleshooting
+
+### Port 5000 or 5050 is already in use
+
+Stop the other app using that port, or change the host port in the `deploy` and `smoke` targets in the `Makefile`.
+
+### MLflow is not reachable
+
+Check that the service is running:
+
+```bash
+docker compose ps
+docker compose logs mlflow
+```
+
+For local training, confirm `MLFLOW_TRACKING_URI` is set to `http://127.0.0.1:5001`. Jenkins must use `http://mlflow:5001` from inside the Compose network.
+
+### DVC says outputs are missing
+
+Run the pipeline first with `dvc repro`. If the outputs should already exist in the remote, run `dvc pull`.
+
+### Jenkins cannot build or run Docker images
+
+Confirm Docker Desktop is running and the Docker socket mount is enabled. The Jenkins container in this workshop is intentionally configured for a local Docker Desktop environment.
+
+## Scope and production notes
+
+This is a teaching project with synthetic data and a simple linear regression model. Its R² gate is an example of a release check, not evidence that the model is suitable for real pricing decisions. A production system would need representative data, stronger validation, model/data monitoring, secure CI credentials, controlled model promotion, and production-grade serving and deployment.

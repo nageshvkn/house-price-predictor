@@ -1,0 +1,5 @@
+[core]
+    remote = workshop
+
+['remote "workshop"']
+    url = ../house-price-predictor-dvc-storage

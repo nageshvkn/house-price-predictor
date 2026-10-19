@@ -1,0 +1,90 @@
+schema: '2.0'
+stages:
+  generate:
+    cmd: python train.py generate-raw --rows 150 --seed 42
+    deps:
+    - path: config.py
+      hash: md5
+      md5: 97220dda1a8325087e987d967b49a1c1
+      size: 426
+    - path: data.py
+      hash: md5
+      md5: f32719315d2724049c5dd1d8c8d855e2
+      size: 4033
+    - path: train.py
+      hash: md5
+      md5: 3acc47c6a34217e486fafb52e9799e2c
+      size: 4735
+    params:
+      params.yaml:
+        data.rows: 150
+        data.seed: 42
+    outs:
+    - path: data/raw/house_prices_raw_v1.xlsx
+      hash: md5
+      md5: 8e8ab46b5533af7a643a44edb282dee4
+      size: 9052
+  prepare:
+    cmd: python train.py clean-data
+    deps:
+    - path: config.py
+      hash: md5
+      md5: 97220dda1a8325087e987d967b49a1c1
+      size: 426
+    - path: data.py
+      hash: md5
+      md5: f32719315d2724049c5dd1d8c8d855e2
+      size: 4033
+    - path: data/raw/house_prices_raw_v1.xlsx
+      hash: md5
+      md5: 8e8ab46b5533af7a643a44edb282dee4
+      size: 9052
+    - path: train.py
+      hash: md5
+      md5: 3acc47c6a34217e486fafb52e9799e2c
+      size: 4735
+    outs:
+    - path: data/processed/house_prices_train.xlsx
+      hash: md5
+      md5: df23677fa86393ec2f18ce7f71ba129b
+      size: 8985
+  train:
+    cmd: python train.py train --test-size 0.25 --seed 42
+    deps:
+    - path: config.py
+      hash: md5
+      md5: 97220dda1a8325087e987d967b49a1c1
+      size: 426
+    - path: data.py
+      hash: md5
+      md5: f32719315d2724049c5dd1d8c8d855e2
+      size: 4033
+    - path: data/processed/house_prices_train.xlsx
+      hash: md5
+      md5: df23677fa86393ec2f18ce7f71ba129b
+      size: 8985
+    - path: model.py
+      hash: md5
+      md5: 61a2e155faa33424c8497dcfbf5593bb
+      size: 2624
+    - path: train.py
+      hash: md5
+      md5: 3acc47c6a34217e486fafb52e9799e2c
+      size: 4735
+    params:
+      params.yaml:
+        train.seed: 42
+        train.test_size: 0.25
+    outs:
+    - path: metrics.json
+      hash: md5
+      md5: e2d3af85abba04e5108bf66af9c73e98
+      size: 86
+    - path: models/latest_model.pkl
+      hash: md5
+      md5: 0b261bda7f69d49fdf32abe5720d1d54
+      size: 704
+    - path: models/latest_model_info.json
+      hash: md5
+      md5: 7e87e5dfb30ba14e08eb5aac2f99a388
+      size: 231

@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         IMAGE_TAG = "${env.BUILD_NUMBER}"
+        MLFLOW_TRACKING_URI = "http://mlflow:5001"
     }
 
     stages {
@@ -30,9 +31,9 @@ pipeline {
             }
         }
 
-        stage('Train & Evaluate') {
+        stage('DVC Repro') {
             steps {
-                sh 'make train'
+                sh 'make reproduce'
             }
         }
 
@@ -56,7 +57,7 @@ pipeline {
 
         stage('Smoke Test') {
             steps {
-                sh 'make smoke'
+                sh 'make smoke APP_HOST=host.docker.internal'
             }
         }
     }
@@ -66,7 +67,7 @@ pipeline {
             echo "Deployed build ${env.BUILD_NUMBER} -- open http://localhost:5050"
         }
         failure {
-            echo "Pipeline failed -- previous deployment (if any) was left untouched."
+            echo "Pipeline failed. Inspect the failed stage; if deployment ran, restore a previous image tag."
         }
     }
 }

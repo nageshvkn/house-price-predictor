@@ -1,4 +1,14 @@
 services:
+  mlflow:
+    build:
+      context: .
+      dockerfile: mlflow/Dockerfile
+    container_name: mlops-mlflow
+    ports:
+      - "127.0.0.1:5001:5001"
+    volumes:
+      - mlflow_data:/mlflow
+
   jenkins:
     build:
       context: ./jenkins
@@ -8,10 +18,13 @@ services:
     # not something you'd do for a real shared Jenkins instance.
     user: root
     ports:
-      - "8090:8080"
+      - "127.0.0.1:8090:8080"
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - mlflow
 
 volumes:
   jenkins_home:
+  mlflow_data:
